@@ -144,7 +144,7 @@ int main(void)
     int i=0;
     string english,bangla,searchEnglish;
     ifstream ifile;
-    ifile.open("dictionary.txt");
+    ifile.open("word.txt");
     if(!ifile) return 0;
     while(ifile>>english)
     {
@@ -161,5 +161,5 @@ int main(void)
     	 cout<<"enter text to search: ";
     }
 
-
+    return 0;
 }
