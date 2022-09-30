@@ -9,8 +9,8 @@ struct block{
     int currentNode;
     string* english;
     string* bangla;
-    block* parent;
-    block* sibling;
+    block* parentBlock;
+    block* siblingBlock;
     block** childPtr;
     bool isLeaf;
 } *rootBlock;
@@ -20,8 +20,8 @@ block* newBlock(){
     newBlock-> currentNode = 0;
     newBlock-> english = new string[MaxKey];
     newBlock-> bangla = new string[MaxKey];
-    newBlock-> parent = NULL;
-    newBlock-> sibling = NULL;
+    newBlock-> parentBlock = NULL;
+    newBlock-> siblingBlock = NULL;
     newBlock-> childPtr = new block* [MaxChild];
     newBlock-> isLeaf = true;
     return newBlock;
@@ -30,14 +30,14 @@ block* newBlock(){
 block* suitableLeafBlockFinder(string english){
     block *tempBlock = rootBlock;
     
-    do{
+    while(tempBlock->isLeaf == false){
         int i;
         for(i = 0; i <tempBlock->currentNode-1; i++){
             if(tempBlock->english[i] > english) 
                 break;
         }
         tempBlock = tempBlock->childPtr[i];
-    }while(tempBlock->isLeaf == false);
+    }
 
     return tempBlock;
 }
@@ -59,11 +59,65 @@ void insertIntoLeafBlock(block* leafBlock, string english, string bangla){
     leafBlock->currentNode++;
 }
 
-void middleBlocksHandeler(block* leftBlock, block* rightBlock, block* parentBlock, string value){
-    
+void nullParentHandeler(block* leftBlock, block* rightBlock, block* parentBlock, string middle_value){
+    parentBlock = newBlock();
+    parentBlock->english[0] = middle_value;
+    parentBlock->isLeaf = false;
+    parentBlock->currentNode++;
+    parentBlock->childPtr[0] = leftBlock;
+    parentBlock->childPtr[1] = rightBlock;
+    leftBlock->parentBlock = parentBlock;
+    rightBlock->parentBlock = parentBlock;
+    rootBlock = parentBlock;
 }
 
-void splitHandeler(block* leafBlock, string english, string bangla){
+void insertMiddleValueIntoParentBlock(block *parentBlock, block *rightBlock, string value){
+    int index = parentBlock->currentNode - 1;
+    for( ; index>=0; index--){
+        if(parentBlock->english[index] > value){
+            parentBlock->english[index+1] = parentBlock->english[index];
+            parentBlock->childPtr[index+2] = parentBlock->childPtr[index+1];
+        }
+        else{
+            break;
+        }
+    }
+    parentBlock->english[index+1] = value;
+    parentBlock->childPtr[index+2] = rightBlock;
+    parentBlock->currentNode++;
+}
+
+void middleBlocksHandeler(block* leftBlock, block* rightBlock, block* parentBlock, string middle_value){
+    if(parentBlock == NULL){
+        nullParentHandeler(leftBlock, rightBlock, parentBlock, middle_value);
+    }
+    else{
+        rightBlock->parentBlock = parentBlock;
+        insertMiddleValueIntoParentBlock(parentBlock, rightBlock, middle_value);
+        if(parentBlock->currentNode == MaxKey){
+            // parentBlockSplitHandler()
+            block* splitBlock = newBlock();
+            int middle = 1 + ((MaxKey-1)/2);
+            int s_index = 0;
+            for(int i=middle; i<MaxKey; i++){
+                splitBlock->english[s_index] = parentBlock->english[i];
+                if(s_index == 0){
+                    splitBlock->childPtr[0] = parentBlock->childPtr[i];
+                    splitBlock->childPtr[0]->parentBlock = splitBlock;
+                }
+                splitBlock->childPtr[s_index+1] = parentBlock->childPtr[i+1];
+                splitBlock->childPtr[s_index+1]->parentBlock = splitBlock;
+                s_index++;
+            }
+            //update
+            parentBlock->currentNode = middle;
+            splitBlock->currentNode = s_index;
+            middleBlocksHandeler(parentBlock, splitBlock, parentBlock->parentBlock, splitBlock->english[0]);
+        }
+    }
+}
+
+void LeafBlockSplitHandeler(block* leafBlock, string english, string bangla){
     block* splitBlock = newBlock();
 
     int middle = 1 + ((MaxKey-1)/2); // taking the ceiling value
@@ -79,10 +133,10 @@ void splitHandeler(block* leafBlock, string english, string bangla){
 
     leafBlock->currentNode = middle;
     splitBlock->currentNode = s_index + 1;
-    splitBlock->sibling = leafBlock->sibling;
-    leafBlock->sibling = splitBlock;
+    splitBlock->siblingBlock = leafBlock->siblingBlock;
+    leafBlock->siblingBlock = splitBlock;
 
-    middleBlocksHandeler(leafBlock, splitBlock, leafBlock->parent, splitBlock->english[0]);
+    middleBlocksHandeler(leafBlock, splitBlock, leafBlock->parentBlock, splitBlock->english[0]);
 }
 
 void insert(string english, string bangla){
@@ -92,7 +146,7 @@ void insert(string english, string bangla){
         insertIntoLeafBlock(leafBlock, english, bangla);
     }
     else if(leafBlock->currentNode == MaxKey){
-        splitHandeler(leafBlock, english, bangla);
+        LeafBlockSplitHandeler(leafBlock, english, bangla);
     }
     else{
         cout<<"Insert Error (max key overflow)"<<endl;
@@ -121,4 +175,17 @@ int main(void){
     	getline(ifile,bangla);
     	insert(english,bangla);
     }
+
+    cout<<"Enter word to search meaning: ";
+    string word;
+    cin>>word;
+    block* wordBlock = suitableLeafBlockFinder(word);
+    for(int i=0; i<wordBlock->currentNode; i++){
+        if(word == wordBlock->english[i]){
+            cout<<wordBlock->bangla[i]<<endl;
+            return 0;
+        }
+    }
+    cout<<"word not found"<<endl;
+    return 0;
 }

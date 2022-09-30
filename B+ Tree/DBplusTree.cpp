@@ -155,7 +155,7 @@ int main(void)
     if(!ifile) return 0;
     while(ifile>>english)
     {
-    	getline(ifile,bangla);
+        	getline(ifile,bangla);
     	insertLeaf(english,bangla);
     }
 
