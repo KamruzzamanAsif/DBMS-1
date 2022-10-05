@@ -1,23 +1,23 @@
 #include<bits/stdc++.h>
 using namespace std;
 using namespace std::chrono;
-
-int n,mx; //number of child;
-struct mystruct
+    
+int n,MaxKey; //number of child;
+struct Block
 {
     int currentNode;
-    mystruct *parent,*next;
+    Block *parent,*next;
     string *english,*bangla;
     bool lf;
-    mystruct **point;
+    Block **point;
 } ;
-mystruct *root,*firstLeaf;
+Block *root,*firstLeaf;
 
-mystruct* createNode()
+Block* createNode()
 {
-    mystruct *m=new mystruct();
+    Block *m=new Block();
 
-    m->point = new mystruct *[n+1];
+    m->point = new Block *[n+1];
     m->english=new string[n];
     m->bangla=new string[n];
 
@@ -27,7 +27,7 @@ mystruct* createNode()
     m->lf = true;
     return m;
 }
-mystruct *findLeaf(mystruct *tempRt,string english, int *counter)
+Block *findLeaf(Block *tempRt,string english, int *counter)
 {
     int sum=0;
     while(tempRt->lf==false)
@@ -44,7 +44,7 @@ mystruct *findLeaf(mystruct *tempRt,string english, int *counter)
 
 }
 
-void insertValueAndPoint(mystruct *parent,string value,mystruct *right)
+void insertValueAndPoint(Block *parent,string value,Block *right)
 {                                       //add with parents node
     int i=parent->currentNode-1;
     for(;i>=0; i--)
@@ -61,7 +61,7 @@ void insertValueAndPoint(mystruct *parent,string value,mystruct *right)
     parent->currentNode++;
 }
 
-void insertMiddle(mystruct *parent,string value,mystruct *left,mystruct *right)
+void insertMiddle(Block *parent,string value,Block *left,Block *right)
 {
     if(parent==NULL)        //create a root
     {
@@ -78,12 +78,12 @@ void insertMiddle(mystruct *parent,string value,mystruct *left,mystruct *right)
     }
     right->parent = parent;
     insertValueAndPoint(parent,value,right);
-    if(parent->currentNode==mx)
+    if(parent->currentNode==MaxKey)
     {
-        mystruct *splitNode = createNode();
+        Block *splitNode = createNode();
         splitNode->lf = false;
         int j=0;
-        for(int i=parent->currentNode-(n-1)/2;i<mx; i++)
+        for(int i=parent->currentNode-(n-1)/2;i<MaxKey; i++)
         {
             splitNode->english[j] = parent->english[i];
             if(j==0)
@@ -105,7 +105,7 @@ void insertMiddle(mystruct *parent,string value,mystruct *left,mystruct *right)
 void insertLeaf(string english,string bangla)
 {
     int counter=0;
-    mystruct *leaf = findLeaf(root,english,&counter);        //find leaf where it can be fit
+    Block *leaf = findLeaf(root,english,&counter);        //find leaf where it can be fit
     int i= leaf->currentNode-1;
     if(i>-1) {
     for(; i>=0; i--)
@@ -122,11 +122,11 @@ void insertLeaf(string english,string bangla)
     leaf->bangla[i+1] = bangla;
     leaf->currentNode++;
 
-    if(leaf->currentNode==mx)               //split and create two leaf
+    if(leaf->currentNode==MaxKey)               //split and create two leaf
     {
-        mystruct *splitNode = createNode();
+        Block *splitNode = createNode();
         int j=0;
-        for(int i=leaf->currentNode-n/2;i<mx; i++)
+        for(int i=leaf->currentNode-n/2;i<MaxKey; i++)
         {
             splitNode->english[j] = leaf->english[i];
             splitNode->bangla[j] = leaf->bangla[i];
@@ -144,10 +144,10 @@ int main(void)
 {
 	cout << "number of Child:" << endl;
 	cin >> n;
-	mx=n;
-    cout<<n<<" "<<mx<<endl;
+	MaxKey=n-1;
+    cout<<n<<" "<<MaxKey<<endl;
     root = createNode();
-    mystruct *leaf;
+    Block *leaf;
     int i=0,counter;
     string english,bangla,searchEnglish;
     ifstream ifile;
@@ -155,7 +155,7 @@ int main(void)
     if(!ifile) return 0;
     while(ifile>>english)
     {
-        	getline(ifile,bangla);
+    	getline(ifile,bangla);
     	insertLeaf(english,bangla);
     }
 

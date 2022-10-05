@@ -13,7 +13,8 @@ struct block{
     block* siblingBlock;
     block** childPtr;
     bool isLeaf;
-} *rootBlock;
+};
+struct block* rootBlock;
 
 block* newBlock(){
     block* newBlock = new block();
@@ -22,7 +23,7 @@ block* newBlock(){
     newBlock-> bangla = new string[MaxKey];
     newBlock-> parentBlock = NULL;
     newBlock-> siblingBlock = NULL;
-    newBlock-> childPtr = new block* [MaxChild];
+    newBlock-> childPtr = new block *[MaxChild];
     newBlock-> isLeaf = true;
     return newBlock;
 }
@@ -32,7 +33,7 @@ block* suitableLeafBlockFinder(string english){
     
     while(tempBlock->isLeaf == false){
         int i;
-        for(i = 0; i <tempBlock->currentNode-1; i++){
+        for(i = 0; i <tempBlock->currentNode; i++){
             if(tempBlock->english[i] > english) 
                 break;
         }
@@ -44,6 +45,7 @@ block* suitableLeafBlockFinder(string english){
 
 void insertIntoLeafBlock(block* leafBlock, string english, string bangla){
     int index = leafBlock->currentNode - 1;
+    
     for( ; index>=0; index--){
         if(leafBlock->english[index] > english){
             leafBlock->english[index+1] = leafBlock->english[index];
@@ -74,12 +76,12 @@ void nullParentHandeler(block* leftBlock, block* rightBlock, block* parentBlock,
 void insertMiddleValueIntoParentBlock(block *parentBlock, block *rightBlock, string value){
     int index = parentBlock->currentNode - 1;
     for( ; index>=0; index--){
-        if(parentBlock->english[index] > value){
-            parentBlock->english[index+1] = parentBlock->english[index];
-            parentBlock->childPtr[index+2] = parentBlock->childPtr[index+1];
+        if(parentBlock->english[index] <= value){
+            break;
         }
         else{
-            break;
+            parentBlock->english[index+1] = parentBlock->english[index];
+            parentBlock->childPtr[index+2] = parentBlock->childPtr[index+1];
         }
     }
     parentBlock->english[index+1] = value;
@@ -97,7 +99,7 @@ void middleBlocksHandeler(block* leftBlock, block* rightBlock, block* parentBloc
         if(parentBlock->currentNode == MaxKey){
             // parentBlockSplitHandler()
             block* splitBlock = newBlock();
-            int middle = 1 + ((MaxKey-1)/2);
+            int middle = MaxKey/2;
             int s_index = 0;
             for(int i=middle; i<MaxKey; i++){
                 splitBlock->english[s_index] = parentBlock->english[i];
@@ -110,8 +112,8 @@ void middleBlocksHandeler(block* leftBlock, block* rightBlock, block* parentBloc
                 s_index++;
             }
             //update
-            parentBlock->currentNode = middle;
-            splitBlock->currentNode = s_index;
+            parentBlock->currentNode -= middle+1;
+            splitBlock->currentNode = middle;
             middleBlocksHandeler(parentBlock, splitBlock, parentBlock->parentBlock, splitBlock->english[0]);
         }
     }
@@ -120,7 +122,7 @@ void middleBlocksHandeler(block* leftBlock, block* rightBlock, block* parentBloc
 void LeafBlockSplitHandeler(block* leafBlock, string english, string bangla){
     block* splitBlock = newBlock();
 
-    int middle = 1 + ((MaxKey-1)/2); // taking the ceiling value
+    int middle = leafBlock->currentNode - MaxChild/2; // taking the ceiling value
     int s_index = 0; // splitBlock index
     // we are making right biased tree here
     for(int i=middle; i<MaxKey; i++){
@@ -132,7 +134,7 @@ void LeafBlockSplitHandeler(block* leafBlock, string english, string bangla){
     splitBlock->bangla[s_index] = bangla;
 
     leafBlock->currentNode = middle;
-    splitBlock->currentNode = s_index + 1;
+    splitBlock->currentNode = MaxChild/2;
     splitBlock->siblingBlock = leafBlock->siblingBlock;
     leafBlock->siblingBlock = splitBlock;
 
@@ -141,15 +143,31 @@ void LeafBlockSplitHandeler(block* leafBlock, string english, string bangla){
 
 void insert(string english, string bangla){
     block* leafBlock = suitableLeafBlockFinder(english);
-    
-    if(leafBlock->currentNode < MaxKey){
-        insertIntoLeafBlock(leafBlock, english, bangla);
+ 
+    // if(leafBlock->currentNode < MaxKey){
+    //     insertIntoLeafBlock(leafBlock, english, bangla);
+    // }
+
+    int index = leafBlock->currentNode - 1;
+    if(index>-1){
+        for( ; index>=0; index--){
+            if(leafBlock->english[index] > english){
+                leafBlock->english[index+1] = leafBlock->english[index];
+                leafBlock->bangla[index+1] = leafBlock->bangla[index]; 
+            }
+            else{
+                break;
+            }
+        }
     }
-    else if(leafBlock->currentNode == MaxKey){
+    leafBlock->english[index+1] = english;
+    leafBlock->bangla[index+1] = bangla; 
+
+    leafBlock->currentNode++;
+
+
+    if(leafBlock->currentNode == MaxKey){
         LeafBlockSplitHandeler(leafBlock, english, bangla);
-    }
-    else{
-        cout<<"Insert Error (max key overflow)"<<endl;
     }
 }
 
@@ -161,13 +179,14 @@ int main(void){
     cout<<"Enter number of child(fan out): ";
     cin>>MaxChild;
     MaxKey = MaxChild - 1;
-
-
+    cout<<MaxKey<<" "<<MaxChild<<endl;
+    rootBlock = newBlock();
+    
     string english, bangla;
     ifstream ifile;
-    ifile.open("dictionary.txt");
+    ifile.open("word.txt");
     if(!ifile){
-        cout<<"Error: dictionary.txt not found";
+        cout<<"Error: file not found";
         return 0;
     } 
     while(ifile>>english)
@@ -176,16 +195,21 @@ int main(void){
     	insert(english,bangla);
     }
 
-    cout<<"Enter word to search meaning: ";
-    string word;
-    cin>>word;
-    block* wordBlock = suitableLeafBlockFinder(word);
-    for(int i=0; i<wordBlock->currentNode; i++){
-        if(word == wordBlock->english[i]){
-            cout<<wordBlock->bangla[i]<<endl;
-            return 0;
+    while(1){
+        cout<<"Enter word to search meaning: ";
+        int flag = 0;
+        string word;
+        cin>>word;
+        block* wordBlock = suitableLeafBlockFinder(word);
+        for(int i=0; i<wordBlock->currentNode; i++){
+            if(word == wordBlock->english[i]){
+                cout<<wordBlock->bangla[i]<<endl;
+                flag++;
+            }
         }
+        if(flag == 0)
+            cout<<"word not found"<<endl;
     }
-    cout<<"word not found"<<endl;
+    
     return 0;
 }

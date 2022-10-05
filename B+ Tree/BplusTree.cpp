@@ -137,7 +137,7 @@ void insertLeaf(string english,string bangla)
 int main(void)
 {
 	cout << "number of Child:" << endl;
-	cin >> n;
+	cin >> mx;
 	mx=n;
     root = createNode();
     mystruct *leaf;
